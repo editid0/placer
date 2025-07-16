@@ -2,7 +2,7 @@ from flask import Flask, render_template, send_from_directory
 from flask_socketio import SocketIO
 from flask_socketio import send, emit
 from dotenv import load_dotenv
-import os, psycopg2, uuid
+import os, psycopg2, uuid, math, re
 from limits import storage, strategies, parse
 import valkey
 
@@ -35,6 +35,15 @@ ratelimit_limit = parse("10 per second")
 
 # Initialise Valkey connection
 kv = valkey.Valkey(host=os.getenv("DB_HOST"), port=6379, db=0)
+
+
+def pixels_to_level(pixels):
+    """
+    Convert pixel count to level.
+    """
+    if pixels < 0:
+        return 0
+    return math.floor(math.sqrt(pixels) / 5)
 
 
 @app.route("/")
@@ -134,6 +143,22 @@ def handle_set_coordinate(data):
     color = data.get("color", "#ffffff")
     # Make sure color is a valid (allowed) hex color
     APPROVED = ["#ffffff", "#ffff00", "#0000ff", "#00ff00", "#ff0000"]
+    allowed = False
+    if pixels_to_level(pixels + 1) >= 10:
+        if re.match(r"^#[0-9a-fA-F]{6}$", color):
+            # If the color is a valid hex color, we allow it
+            allowed = True
+        else:
+            # If the color is not a valid hex color, we send an error message
+            emit("error_msg", {"message": "Invalid color format"})
+            return
+    else:
+        if color in APPROVED:
+            allowed = True
+    if not allowed:
+        # If the color is not allowed, we send an error message
+        emit("error_msg", {"message": "Color not allowed"})
+        return
     with database.cursor() as cursor:
         # SQL query to insert or update the pixel in the database
         upsert_query = """

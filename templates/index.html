@@ -17,7 +17,7 @@
         <div
             class="text-center mb-4 bg-stone-200 dark:bg-stone-900 dark:text-white w-[10cm] mx-auto my-2 rounded-2xl px-2">
             <h1 class="text-2xl">Placer</h1>
-            <p class="dark:text-stone-200 text-stone-700">For the sake of HackMate, this is a game where you work
+            <p class="dark:text-stone-200 text-stone-700">This is a game where you work
                 together
                 with as many people as you want to make a masterpiece, or (more realistically) a nightmare.</p>
         </div>
@@ -48,7 +48,11 @@
                 <button id="color-white"
                     class="bg-white hover:bg-gray-200 text-black font-bold py-2 px-4 rounded mx-2 border-4 border-transparent"
                     onclick="setColor('#ffffff'); highlightButton('color-white')">White</button>
+                <input type="color" id="color-picker" class="ml-2 border-2 border-gray-300 rounded"
+                    style="display: none;" onchange="setColor(this.value); highlightButton('color-picker')">
             </div>
+            <p class="text-center dark:text-white" style="display: block;" id="color-prompt">Unlock custom colours at
+                level 10</p>
         </div>
     </div>
     <div class="md:hidden text-center mt-4 dark:text-white">
@@ -57,174 +61,234 @@
     </div>
 </body>
 <script>
-    const canvas = document.getElementById("canvas");
-    const gridMap = {};
-    const ctx = canvas.getContext("2d");
-    document.current_color = "#ff0000";
+    const canvas = document.getElementById("canvas"); // Get the canvas element
+    const gridMap = {}; // Initialise an empty object to store grid coordinates
+    const ctx = canvas.getContext("2d"); // Get the 2D drawing context of the canvas
+    const socket = io(); // Initialise the socket.io connection
+    document.current_color = "#ff0000"; // Set the default color to red
+
+    function pixelsToLevel(pixels) {
+        // This function converts the number of pixels
+        // a user has placed to a level, allowing for
+        // progression, each level is harder to achieve
+        var level = Math.sqrt(pixels); // First, we square root the number of pixels
+        level = level / 5; // Then we divide by 5 to make the levels more spaced out
+        return Math.floor(level); // Finally, we round down to the nearest whole number
+    }
+
+    function levelToPixels(level) {
+        // This function converts a level back to the number of pixels required to reach that level
+        if (level < 0) {
+            return 0; // If the level is negative, return 0 pixels
+        }
+        return Math.floor(Math.pow(level * 5, 2)); // We multiply the level by 5, then square it to get the number of pixels
+    }
+
     function setColor(color) {
+        // This function sets the current color for drawing
         document.current_color = color;
     }
+
     function highlightButton(selectedId) {
+        // This function highlights the selected color button, using styling to indicate the current selection
         const ids = ['color-red', 'color-green', 'color-blue', 'color-yellow', 'color-white'];
         ids.forEach(id => {
+            // Iterate over each button ID and set the border color
             const btn = document.getElementById(id);
             if (btn) {
+                // If the button exists, then set the border color based on whether it is selected
                 btn.style.borderColor = (id === selectedId) ? '#222' : 'transparent';
             }
         });
     }
-    highlightButton('color-red');
 
     function drawGrid() {
+        // Draw the initial grid on the canvas
+        // Clear the canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#ffffff"; // Set the background color to white
+        ctx.fillRect(0, 0, canvas.width, canvas.height); // Fill the canvas with white
 
-        const boxSize = 5;
-        const cols = 100;
-        const rows = 100;
+        const boxSize = 5; // Set the size of each grid box
+        const cols = 100; // Set the number of columns in the grid
+        const rows = 100; // Set the number of rows in the grid
 
-        ctx.strokeStyle = "#444";
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = "#aaa"; // Set the stroke color for the grid lines
+        ctx.lineWidth = 1; // Set the line width for the grid lines
 
         for (let x = 0; x <= cols; x++) {
+            // Loop over each column
             ctx.beginPath();
-            ctx.moveTo(x * boxSize, 0);
-            ctx.lineTo(x * boxSize, rows * boxSize);
-            ctx.stroke();
+            ctx.moveTo(x * boxSize, 0); // Start at the top
+            ctx.lineTo(x * boxSize, rows * boxSize); // Draw a line to the bottom
+            ctx.stroke(); // Make the line visible
         }
         for (let y = 0; y <= rows; y++) {
+            // Loop over each row
             ctx.beginPath();
-            ctx.moveTo(0, y * boxSize);
-            ctx.lineTo(cols * boxSize, y * boxSize);
-            ctx.stroke();
+            ctx.moveTo(0, y * boxSize); // Start at the left
+            ctx.lineTo(cols * boxSize, y * boxSize); // Draw a line to the right
+            ctx.stroke(); // Make the line visible
         }
     }
 
     function setCoordinate(x, y, color) {
-        let current = getCoordinate(x, y);
+        // This function sets a coordinate on the grid to a specific color
+        let current = getCoordinate(x, y); // Get the current color of the coordinate
         if (current == color) {
+            // If the current color is the same as the new color, do nothing
             return false;
         }
-        ctx.fillStyle = color;
-        ctx.fillRect(x * 5 + 1, y * 5 + 1, 4, 4);
-        gridMap[`${x},${y}`] = color;
+        ctx.fillStyle = color; // Set the fill color to the new color
+        ctx.fillRect(x * 5 + 1, y * 5 + 1, 4, 4); // Draw a small rectangle at the coordinate
+        gridMap[`${x},${y}`] = color; // Store the color in the gridMap object
         return true;
     }
     function getCoordinate(x, y) {
-        const color = gridMap[`${x},${y}`];
+        // This function retrieves the color of a specific coordinate
+        const color = gridMap[`${x},${y}`]; // Get the color from the gridMap object
         if (color) {
+            // If the color exists, return it
             return color
         } else {
+            // If the color does not exist, return white
             return "#ffffff";
         }
     }
 
-    const socket = io();
-
-    canvas.addEventListener("click", function (event) {
-        const rect = canvas.getBoundingClientRect();
-        const style = window.getComputedStyle(canvas);
-        const paddingLeft = parseFloat(style.paddingLeft);
-
-        const relativeX = event.clientX - rect.left - paddingLeft;
-        const relativeY = event.clientY - rect.top;
-
-        const proportionX = relativeX / (rect.width - paddingLeft * 2);
-        const proportionY = relativeY / rect.height;
-
-        const x = Math.min(Math.floor(proportionX * 100), 99);
-        const y = Math.min(Math.floor(proportionY * 100), 99);
-
-        if (x >= 0 && x < 100 && y >= 0 && y < 100) {
-            var set = setCoordinate(x, y, document.current_color);
-            if (!set) {
-                return;
-            }
-            socket.emit("set_coordinate", { x: x, y: y, color: document.current_color, user_id: localStorage.getItem("user_id") });
-        }
-        let pixelsPlaced = localStorage.getItem("pixels_placed");
-        if (pixelsPlaced) {
-            pixelsPlaced = parseInt(pixelsPlaced) + 1;
-        } else {
-            pixelsPlaced = 1;
-        }
-        localStorage.setItem("pixels_placed", pixelsPlaced);
-    });
-
-    drawGrid();
-
     function updateLimit(remaining) {
-        const limitElement = document.getElementById("ratelimit");
+        // This function updates the rate limit display on the page
+        const limitElement = document.getElementById("ratelimit"); // Get the element where the rate limit will be displayed
         if (limitElement) {
+            // If the element exists, update its text content with the remaining requests
             limitElement.textContent = `Rate limit left: ${remaining}`;
         } else {
+            // If the element does not exist, log a warning to the console
             console.warn("Rate limit element not found");
         }
     }
 
+    highlightButton('color-red'); // Highlight the red button as the default color
+    drawGrid(); // Draw the initial grid on the canvas
+
+    canvas.addEventListener("click", function (event) {
+        // This function handles the click event on the canvas
+        const rect = canvas.getBoundingClientRect(); // This gets the position of the canvas in the viewport, so that even if it's moved we get accurate coordinates
+        const style = window.getComputedStyle(canvas); // Get the computed style of the canvas to account for padding
+        const paddingLeft = parseFloat(style.paddingLeft); // Get the left padding of the canvas (We never use the right padding as coordinates are left aligned)
+
+        const relativeX = event.clientX - rect.left - paddingLeft; // get the x value on the canvas
+        const relativeY = event.clientY - rect.top; // get the y value on the canvas
+
+        const proportionX = relativeX / (rect.width - paddingLeft * 2); // work out the proportion of the x value relative to the width of the canvas
+        const proportionY = relativeY / rect.height; // work out the proportion of the y value relative to the height of the canvas
+
+        const x = Math.min(Math.floor(proportionX * 100), 99); // work out the x coordinate in the grid, making sure it is between 0 and 99
+        const y = Math.min(Math.floor(proportionY * 100), 99); // work out the y coordinate in the grid, making sure it is between 0 and 99
+
+        if (x >= 0 && x < 100 && y >= 0 && y < 100) {
+            // If the coordinates are within the grid bounds, set the coordinate
+            var set = setCoordinate(x, y, document.current_color); // Set the coordinate on the grid with the current color
+            if (!set) {
+                // If the coordinate was not set (because it was already the same color), do nothing
+                return;
+            }
+            // Emit the set_coordinate event to the server with the coordinates and color
+            socket.emit("set_coordinate", { x: x, y: y, color: document.current_color, user_id: localStorage.getItem("user_id") });
+        }
+    });
+
+    setInterval(() => {
+        // This function is called every second to update the rate limit
+        socket.emit("ratelimit", { user_id: localStorage.getItem("user_id") });
+    }, 1000);
+
     socket.on("connect", () => {
-        socket.emit("request_current");
-        socket.emit("pixel_count", { user_id: localStorage.getItem("user_id") });
+        // This function is called when the socket connection is established
+        socket.emit("request_current"); // Request the current pixels from the server
+        socket.emit("pixel_count", { user_id: localStorage.getItem("user_id") }); // Request the pixel count for the user
     });
 
     socket.on("current_pixels", (msg) => {
+        // This function is called when the server sends the current pixels
         msg.pixels.forEach(pixel => {
+            // Iterate over each pixel and set it on the grid
             setCoordinate(pixel[0], pixel[1], pixel[2]);
         });
         if (!localStorage.getItem("user_id")) {
+            // If the user ID is not set in localStorage, set it to the user_id from the server
             localStorage.setItem("user_id", msg.user_id);
         }
-        socket.emit("ratelimit", { user_id: localStorage.getItem("user_id") });
+        socket.emit("ratelimit", { user_id: localStorage.getItem("user_id") }); // request the current rate limit status
     });
+
     socket.on("disconnect", () => {
+        // when the socket connection is disconnected, log a warning to the console
         console.warn("Disconnected from server");
     });
+
     socket.on("error_msg", (error) => {
+        // when an error message is received from the server, display it in an alert
         alert("Error: " + error.message);
     });
+
     socket.on("coordinate_set", (msg) => {
+        // This function is called when the server confirms a coordinate has been set
         setCoordinate(msg.x, msg.y, msg.color);
     });
+
     socket.on("ratelimit", (msg) => {
+        // this function is called when the server sends the current rate limit status
         updateLimit(msg.remaining);
     });
-    setInterval(() => {
-        socket.emit("ratelimit", { user_id: localStorage.getItem("user_id") });
-    }, 1000);
-    function pixelsToLevel(pixels) {
-        var level = Math.sqrt(pixels);
-        level = level / 5;
-        return Math.floor(level);
-    }
-    function levelToPixels(level) {
-        return Math.floor(Math.pow(level * 5, 2));
-    }
+
     socket.on("pixel_count", (msg) => {
+        // this function is called when the server sends the pixel count for the user
         const pixelsElement = document.getElementById("pixels");
         const progressElement = document.getElementById("levelbar");
         if (pixelsElement) {
+            // if the pixels element exists, update its text content with the pixel count
             pixelsElement.textContent = `You have placed ${msg.count} pixels.`;
         } else {
+            // if the pixels element does not exist, log a warning to the console
             console.warn("Pixels element not found");
         }
         const levelElement = document.getElementById("level");
         if (levelElement) {
+            // if the level element exists, calculate the level and update its text content
             const level = pixelsToLevel(msg.count);
             levelElement.textContent = `You are at level ${level}.`;
         } else {
+            // if the level element does not exist, log a warning to the console
             console.warn("Level element not found");
         }
         if (progressElement) {
-            const level = pixelsToLevel(msg.count);
-            const nextLevelPixels = levelToPixels(level + 1);
-            const previousLevelPixels = levelToPixels(level);
-            const difference = nextLevelPixels - previousLevelPixels;
-            const progress = msg.count - previousLevelPixels;
-            const progressPercentage = (progress / difference);
-            progressElement.style.width = `${(progressPercentage) * 100}%`;
-            progressElement.textContent = `${Math.floor((progressPercentage) * 100)}%`;
+            // if the progress element exists, calculate the progress and update its width and text content
+            const level = pixelsToLevel(msg.count); // Calculate the level based on the pixel count
+            const nextLevelPixels = levelToPixels(level + 1); // get the number of pixels needed to get to the next level
+            const previousLevelPixels = levelToPixels(level); // get the number of pixels needed to get to current level
+            const difference = nextLevelPixels - previousLevelPixels; // calculate the difference between the current and next level pixels
+            const progress = msg.count - previousLevelPixels; // calculate the progress made towards the next level
+            const progressPercentage = (progress / difference); // calculate the percentage of progress made towards the next level
+            progressElement.style.width = `${(progressPercentage) * 100}%`; // set the width of the progress bar based on the progress percentage
+            progressElement.textContent = `${Math.floor((progressPercentage) * 100)}%`; // update the text content of the progress bar to show the percentage
+            // If level is >= 10, show #color-picker
+            const colorPicker = document.getElementById("color-picker");
+            if (colorPicker) {
+                colorPicker.style.display = (level >= 10) ? "block" : "none"; // Show the color picker if the level is 10 or higher
+            } else {
+                // if the color picker element does not exist, log a warning to the console
+                console.warn("Color picker element not found");
+            }
+            const colorPrompt = document.getElementById("color-prompt");
+            if (colorPrompt) {
+                colorPrompt.style.display = (level >= 10) ? "none" : "block"; // Hide the color prompt if the level is 10 or higher
+            } else {
+                // if the color prompt element does not exist, log a warning to the console
+                console.warn("Color prompt element not found");
+            }
         } else {
+            // if the progress element does not exist, log a warning to the console
             console.warn("Progress element not found");
         }
     });
