@@ -315,4 +315,6 @@ def handle_set_name(data):
 
 if __name__ == "__main__":
     # This runs the flask app with socket.io, on all interfaces using port 6969.
-    socketio.run(app, host="0.0.0.0", port=6969, debug=False)
+    socketio.run(
+        app, host="0.0.0.0", port=6969, debug=False, allow_unsafe_werkzeug=True
+    )
