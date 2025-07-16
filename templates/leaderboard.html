@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaderboard</title>
+    <link rel="stylesheet" href="{{ url_for('public', filename='styles.css') }}">
+</head>
+
+<body class="dark:bg-stone-950 dark:text-white">
+    <div class="container mx-auto w-1/4 text-center">
+        <h1 class="text-2xl mb-2">Leaderboard</h1>
+        <table class="w-full">
+            <thead>
+                <tr
+                    class="*:px-2 bg-gray-400 dark:bg-gray-800 text-center *:first:rounded-tl-2xl *:last:rounded-tr-2xl *:py-2">
+                    <th>Rank</th>
+                    <th>Display Name</th>
+                    <th>Pixel Count</th>
+                </tr>
+            </thead>
+            <tbody
+                class="*:even:bg-gray-200 *:odd:bg-gray-300 dark:*:even:bg-gray-600 dark:*:odd:bg-gray-700 *:last:*:first:rounded-bl-2xl *:last:*:last:rounded-br-2xl">
+                {% for user in leaderboard %}
+                <tr class="*:p-4 *:text-center *:text-lg">
+                    <td>{{ loop.index }}</td>
+                    <td>{{ user.name }}</td>
+                    <td>{{ user.pixels }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div class="mt-4">
+            <h2 class="text-lg">Cache Stats</h2>
+            <p>Hits: {{ cache_stats.hits }}</p>
+            <p>Misses: {{ cache_stats.misses }}</p>
+        </div>
+</body>
+
+</html>

@@ -12,13 +12,25 @@
 </head>
 
 <body class="dark:bg-stone-950 px-2">
-    <div class="text-center mb-4 bg-stone-200 dark:bg-stone-900 dark:text-white w-[10cm] mx-auto my-2 rounded-2xl px-2">
+    <div
+        class="text-center mb-4 bg-stone-200 dark:bg-stone-900 dark:text-white w-[10cm] mx-auto my-2 rounded-2xl px-2 py-2">
         <h1 class="text-2xl">Placer</h1>
         <p class="dark:text-stone-200 text-stone-700">This is a game where you work
             together
             with as many people as you want to make a masterpiece, or (more realistically) a nightmare.</p>
+        <input type="text" id="name-input" placeholder="Enter your display name"
+            class="border-2 border-gray-300 rounded p-2 mt-2 w-full max-w-[10cm] mx-auto">
+        <button id="name-submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2"
+            onclick="socket.emit('set_name', { name: document.getElementById('name-input').value, user_id: localStorage.getItem('user_id') })">
+            Set Name
+        </button>
+        <a href="{{ url_for('leaderboard') }}"
+            class="bg-green-500 hover:bg-green-700 text-neutral-600 hover:text-white font-bold py-2 px-4 rounded mt-2 inline-block">
+            View Leaderboard
+        </a>
     </div>
     <div class="max-w-[20cm] mx-auto dark:bg-stone-800 bg-stone-300 p-4 rounded-lg shadow-lg">
+        <p class="text-center dark:text-white" id="connection"></p>
         <canvas id="canvas" width="500" height="500" class="w-full px-2"></canvas>
         <p id="ratelimit" class="text-black dark:text-white text-center"></p>
         <p id="pixels" class="text-black dark:text-white text-center"></p>
@@ -30,7 +42,7 @@
     </div>
     <div>
         <div
-            class="flex justify-center mt-4 bg-stone-200 p-2 rounded-lg shadow-md w-fit mx-auto max-w-screen flex-wrap">
+            class="flex justify-center mt-4 bg-stone-200 p-2 rounded-lg shadow-md w-fit mx-auto max-w-screen flex-wrap gap-2">
             <button id="color-red"
                 class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded mx-2 border-4 border-transparent"
                 onclick="setColor('#ff0000'); highlightButton('color-red')">Red</button>
@@ -51,14 +63,18 @@
         </div>
         <p class="text-center dark:text-white" style="display: block;" id="color-prompt">Unlock custom colours at
             level 10</p>
+        <p class="text-center dark:text-white" style="display: block;" id="rate-prompt">Unlock higher ratelimits at
+            level 15</p>
     </div>
 </body>
 <script>
-    const canvas = document.getElementById("canvas"); // Get the canvas element
-    const gridMap = {}; // Initialise an empty object to store grid coordinates
-    const ctx = canvas.getContext("2d"); // Get the 2D drawing context of the canvas
-    const socket = io(); // Initialise the socket.io connection
-    document.current_color = "#ff0000"; // Set the default color to red
+    const canvas = document.getElementById("canvas"); // get the canvas element
+    const gridMap = {}; // initialise an empty object to store grid coordinates
+    const ctx = canvas.getContext("2d"); // get the 2D drawing context of the canvas
+    const socket = io(); // initialise the socket.io connection
+    const nameInput = document.getElementById("name-input"); // get the name input element
+    const connectionStatus = document.getElementById("connection"); // get the connection status element
+    document.current_color = "#ff0000"; // set the default color to red
 
     function pixelsToLevel(pixels) {
         // This function converts the number of pixels
@@ -197,9 +213,11 @@
     }, 1000);
 
     socket.on("connect", () => {
+        connectionStatus.textContent = "Connected to server"; // Update the connection status when connected
         // This function is called when the socket connection is established
         socket.emit("request_current"); // Request the current pixels from the server
         socket.emit("pixel_count", { user_id: localStorage.getItem("user_id") }); // Request the pixel count for the user
+        socket.emit("get_name", { user_id: localStorage.getItem("user_id") }); // Request the user's name
     });
 
     socket.on("current_pixels", (msg) => {
@@ -218,6 +236,7 @@
     socket.on("disconnect", () => {
         // when the socket connection is disconnected, log a warning to the console
         console.warn("Disconnected from server");
+        connectionStatus.textContent = "Disconnected from server"; // Update the connection status when disconnected
     });
 
     socket.on("error_msg", (error) => {
@@ -280,9 +299,28 @@
                 // if the color prompt element does not exist, log a warning to the console
                 console.warn("Color prompt element not found");
             }
+            const ratePrompt = document.getElementById("rate-prompt");
+            if (ratePrompt) {
+                ratePrompt.style.display = (level >= 15) ? "none" : "block"; // Hide the rate prompt if the level is 15 or higher
+            } else {
+                // if the rate prompt element does not exist, log a warning to the console
+                console.warn("Rate prompt element not found");
+            }
         } else {
             // if the progress element does not exist, log a warning to the console
             console.warn("Progress element not found");
+        }
+    });
+
+    socket.on("name", (msg) => {
+        // This function is called when the server sends the user's name
+        if (nameInput) {
+            // If the name input element exists, set its value to the user's name
+            console.log("Setting name input to:", msg); // Log the name being set
+            nameInput.value = msg.name;
+        } else {
+            // If the name input element does not exist, log a warning to the console
+            console.warn("Name input element not found");
         }
     });
 </script>

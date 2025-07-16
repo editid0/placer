@@ -1,0 +1,7 @@
+flask
+valkey-py
+flask-socketio
+psycopg2-binary
+cachetools
+limits
+python-dotenv

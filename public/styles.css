@@ -17,9 +17,17 @@
     --color-blue-500: oklch(62.3% 0.214 259.815);
     --color-blue-600: oklch(54.6% 0.245 262.881);
     --color-blue-700: oklch(48.8% 0.243 264.376);
+    --color-gray-100: oklch(96.7% 0.003 264.542);
     --color-gray-200: oklch(92.8% 0.006 264.531);
     --color-gray-300: oklch(87.2% 0.01 258.338);
+    --color-gray-400: oklch(70.7% 0.022 261.325);
+    --color-gray-500: oklch(55.1% 0.027 264.364);
+    --color-gray-600: oklch(44.6% 0.03 256.802);
     --color-gray-700: oklch(37.3% 0.034 259.733);
+    --color-gray-800: oklch(27.8% 0.033 256.848);
+    --color-neutral-500: oklch(55.6% 0 0);
+    --color-neutral-600: oklch(43.9% 0 0);
+    --color-neutral-700: oklch(37.1% 0 0);
     --color-stone-200: oklch(92.3% 0.003 48.717);
     --color-stone-300: oklch(86.9% 0.005 56.366);
     --color-stone-700: oklch(37.4% 0.01 67.558);
@@ -40,6 +48,7 @@
     --font-weight-medium: 500;
     --font-weight-bold: 700;
     --radius-lg: 0.5rem;
+    --radius-xl: 0.75rem;
     --radius-2xl: 1rem;
     --default-font-family: var(--font-sans);
     --default-mono-font-family: var(--font-mono);
@@ -209,6 +218,24 @@
   .static {
     position: static;
   }
+  .container {
+    width: 100%;
+    @media (width >= 40rem) {
+      max-width: 40rem;
+    }
+    @media (width >= 48rem) {
+      max-width: 48rem;
+    }
+    @media (width >= 64rem) {
+      max-width: 64rem;
+    }
+    @media (width >= 80rem) {
+      max-width: 80rem;
+    }
+    @media (width >= 96rem) {
+      max-width: 96rem;
+    }
+  }
   .mx-2 {
     margin-inline: calc(var(--spacing) * 2);
   }
@@ -218,8 +245,14 @@
   .my-2 {
     margin-block: calc(var(--spacing) * 2);
   }
+  .mt-2 {
+    margin-top: calc(var(--spacing) * 2);
+  }
   .mt-4 {
     margin-top: calc(var(--spacing) * 4);
+  }
+  .mb-2 {
+    margin-bottom: calc(var(--spacing) * 2);
   }
   .mb-4 {
     margin-bottom: calc(var(--spacing) * 4);
@@ -242,11 +275,20 @@
   .hidden {
     display: none;
   }
+  .inline-block {
+    display: inline-block;
+  }
   .table {
     display: table;
   }
   .h-full {
     height: 100%;
+  }
+  .w-1 {
+    width: calc(var(--spacing) * 1);
+  }
+  .w-1\/4 {
+    width: calc(1/4 * 100%);
   }
   .w-\[10cm\] {
     width: 10cm;
@@ -260,11 +302,17 @@
   .w-screen {
     width: 100vw;
   }
+  .max-w-\[10cm\] {
+    max-width: 10cm;
+  }
   .max-w-\[20cm\] {
     max-width: 20cm;
   }
   .max-w-screen {
     max-width: 100vw;
+  }
+  .table-auto {
+    table-layout: auto;
   }
   .border-collapse {
     border-collapse: collapse;
@@ -281,6 +329,9 @@
   .justify-center {
     justify-content: center;
   }
+  .gap-2 {
+    gap: calc(var(--spacing) * 2);
+  }
   .rounded {
     border-radius: 0.25rem;
   }
@@ -292,6 +343,13 @@
   }
   .rounded-lg {
     border-radius: var(--radius-lg);
+  }
+  .rounded-xl {
+    border-radius: var(--radius-xl);
+  }
+  .rounded-t-2xl {
+    border-top-left-radius: var(--radius-2xl);
+    border-top-right-radius: var(--radius-2xl);
   }
   .border {
     border-style: var(--tw-border-style);
@@ -319,6 +377,9 @@
   }
   .bg-gray-200 {
     background-color: var(--color-gray-200);
+  }
+  .bg-gray-400 {
+    background-color: var(--color-gray-400);
   }
   .bg-green-500 {
     background-color: var(--color-green-500);
@@ -396,6 +457,18 @@
   .text-blue-100 {
     color: var(--color-blue-100);
   }
+  .text-gray-700 {
+    color: var(--color-gray-700);
+  }
+  .text-neutral-500 {
+    color: var(--color-neutral-500);
+  }
+  .text-neutral-600 {
+    color: var(--color-neutral-600);
+  }
+  .text-neutral-700 {
+    color: var(--color-neutral-700);
+  }
   .text-stone-700 {
     color: var(--color-stone-700);
   }
@@ -416,6 +489,183 @@
   .outline {
     outline-style: var(--tw-outline-style);
     outline-width: 1px;
+  }
+  .\*\:rounded-2xl {
+    :is(& > *) {
+      border-radius: var(--radius-2xl);
+    }
+  }
+  .\*\:p-4 {
+    :is(& > *) {
+      padding: calc(var(--spacing) * 4);
+    }
+  }
+  .\*\:px-2 {
+    :is(& > *) {
+      padding-inline: calc(var(--spacing) * 2);
+    }
+  }
+  .\*\:py-2 {
+    :is(& > *) {
+      padding-block: calc(var(--spacing) * 2);
+    }
+  }
+  .\*\:text-center {
+    :is(& > *) {
+      text-align: center;
+    }
+  }
+  .\*\:text-lg {
+    :is(& > *) {
+      font-size: var(--text-lg);
+      line-height: var(--tw-leading, var(--text-lg--line-height));
+    }
+  }
+  .first\:rounded-t-lg {
+    &:first-child {
+      border-top-left-radius: var(--radius-lg);
+      border-top-right-radius: var(--radius-lg);
+    }
+  }
+  .\*\:first\:rounded-2xl {
+    :is(& > *) {
+      &:first-child {
+        border-radius: var(--radius-2xl);
+      }
+    }
+  }
+  .\*\:first\:rounded-t-lg {
+    :is(& > *) {
+      &:first-child {
+        border-top-left-radius: var(--radius-lg);
+        border-top-right-radius: var(--radius-lg);
+      }
+    }
+  }
+  .\*\:first\:rounded-tl-2xl {
+    :is(& > *) {
+      &:first-child {
+        border-top-left-radius: var(--radius-2xl);
+      }
+    }
+  }
+  .\*\:last\:rounded-tr-2xl {
+    :is(& > *) {
+      &:last-child {
+        border-top-right-radius: var(--radius-2xl);
+      }
+    }
+  }
+  .\*\:last\:\*\:last\:rounded-br-2xl {
+    :is(& > *) {
+      &:last-child {
+        :is(& > *) {
+          &:last-child {
+            border-bottom-right-radius: var(--radius-2xl);
+          }
+        }
+      }
+    }
+  }
+  .\*\:last\:\*\:first\:rounded-2xl {
+    :is(& > *) {
+      &:last-child {
+        :is(& > *) {
+          &:first-child {
+            border-radius: var(--radius-2xl);
+          }
+        }
+      }
+    }
+  }
+  .\*\:first\:\*\:last\:rounded-br-2xl {
+    :is(& > *) {
+      &:first-child {
+        :is(& > *) {
+          &:last-child {
+            border-bottom-right-radius: var(--radius-2xl);
+          }
+        }
+      }
+    }
+  }
+  .\*\:last\:\*\:first\:rounded-br-2xl {
+    :is(& > *) {
+      &:last-child {
+        :is(& > *) {
+          &:first-child {
+            border-bottom-right-radius: var(--radius-2xl);
+          }
+        }
+      }
+    }
+  }
+  .\*\:last\:\*\:first\:rounded-bl-2xl {
+    :is(& > *) {
+      &:last-child {
+        :is(& > *) {
+          &:first-child {
+            border-bottom-left-radius: var(--radius-2xl);
+          }
+        }
+      }
+    }
+  }
+  .odd\:bg-gray-300 {
+    &:nth-child(odd) {
+      background-color: var(--color-gray-300);
+    }
+  }
+  .odd\:bg-gray-400 {
+    &:nth-child(odd) {
+      background-color: var(--color-gray-400);
+    }
+  }
+  .odd\:bg-gray-500 {
+    &:nth-child(odd) {
+      background-color: var(--color-gray-500);
+    }
+  }
+  .odd\:bg-gray-800 {
+    &:nth-child(odd) {
+      background-color: var(--color-gray-800);
+    }
+  }
+  .odd\:bg-white {
+    &:nth-child(odd) {
+      background-color: var(--color-white);
+    }
+  }
+  .\*\:odd\:bg-gray-300 {
+    :is(& > *) {
+      &:nth-child(odd) {
+        background-color: var(--color-gray-300);
+      }
+    }
+  }
+  .\*\:odd\:bg-gray-800 {
+    :is(& > *) {
+      &:nth-child(odd) {
+        background-color: var(--color-gray-800);
+      }
+    }
+  }
+  .even\:bg-gray-100 {
+    &:nth-child(even) {
+      background-color: var(--color-gray-100);
+    }
+  }
+  .even\:bg-gray-200 {
+    &:nth-child(even) {
+      background-color: var(--color-gray-200);
+    }
+  }
+  .\*\:even\:bg-gray-200 {
+    :is(& > *) {
+      &:nth-child(even) {
+        background-color: var(--color-gray-200);
+      }
+    }
   }
   .hover\:bg-blue-700 {
     &:hover {
@@ -474,6 +724,11 @@
       background-color: var(--color-gray-700);
     }
   }
+  .dark\:bg-gray-800 {
+    @media (prefers-color-scheme: dark) {
+      background-color: var(--color-gray-800);
+    }
+  }
   .dark\:bg-stone-800 {
     @media (prefers-color-scheme: dark) {
       background-color: var(--color-stone-800);
@@ -497,6 +752,24 @@
   .dark\:text-white {
     @media (prefers-color-scheme: dark) {
       color: var(--color-white);
+    }
+  }
+  .dark\:\*\:odd\:bg-gray-700 {
+    @media (prefers-color-scheme: dark) {
+      :is(& > *) {
+        &:nth-child(odd) {
+          background-color: var(--color-gray-700);
+        }
+      }
+    }
+  }
+  .dark\:\*\:even\:bg-gray-600 {
+    @media (prefers-color-scheme: dark) {
+      :is(& > *) {
+        &:nth-child(even) {
+          background-color: var(--color-gray-600);
+        }
+      }
     }
   }
 }
