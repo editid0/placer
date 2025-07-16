@@ -11,53 +11,46 @@
         crossorigin="anonymous"></script>
 </head>
 
-<body class="dark:bg-stone-950">
-    <div class="invisible md:visible">
-
-        <div
-            class="text-center mb-4 bg-stone-200 dark:bg-stone-900 dark:text-white w-[10cm] mx-auto my-2 rounded-2xl px-2">
-            <h1 class="text-2xl">Placer</h1>
-            <p class="dark:text-stone-200 text-stone-700">This is a game where you work
-                together
-                with as many people as you want to make a masterpiece, or (more realistically) a nightmare.</p>
-        </div>
-        <div class="max-w-[20cm] mx-auto dark:bg-stone-800 bg-stone-300 p-4 rounded-lg shadow-lg">
-            <canvas id="canvas" width="500" height="500" class="w-full px-2"></canvas>
-            <p id="ratelimit" class="text-black dark:text-white text-center"></p>
-            <p id="pixels" class="text-black dark:text-white text-center"></p>
-            <p id="level" class="text-black dark:text-white text-center"></p>
-            <div class="w-full bg-gray-200 rounded-full dark:bg-gray-700">
-                <div class="bg-blue-600 text-xs font-medium text-blue-100 text-center p-0.5 leading-none rounded-full"
-                    style="width: 0%" id="levelbar">0%</div>
-            </div>
-        </div>
-        <div>
-            <div class="flex justify-center mt-4 bg-stone-200 p-2 rounded-lg shadow-md w-fit mx-auto">
-                <button id="color-red"
-                    class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded mx-2 border-4 border-transparent"
-                    onclick="setColor('#ff0000'); highlightButton('color-red')">Red</button>
-                <button id="color-green"
-                    class="bg-green-500 hover:bg-green-700 text-black hover:text-white font-bold py-2 px-4 rounded mx-2 border-4 border-transparent"
-                    onclick="setColor('#00ff00'); highlightButton('color-green')">Green</button>
-                <button id="color-blue"
-                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mx-2 border-4 border-transparent"
-                    onclick="setColor('#0000ff'); highlightButton('color-blue')">Blue</button>
-                <button id="color-yellow"
-                    class="bg-yellow-500 hover:bg-yellow-700 text-black hover:text-white font-bold py-2 px-4 rounded mx-2 border-4 border-transparent"
-                    onclick="setColor('#ffff00'); highlightButton('color-yellow')">Yellow</button>
-                <button id="color-white"
-                    class="bg-white hover:bg-gray-200 text-black font-bold py-2 px-4 rounded mx-2 border-4 border-transparent"
-                    onclick="setColor('#ffffff'); highlightButton('color-white')">White</button>
-                <input type="color" id="color-picker" class="ml-2 border-2 border-gray-300 rounded"
-                    style="display: none;" onchange="setColor(this.value); highlightButton('color-picker')">
-            </div>
-            <p class="text-center dark:text-white" style="display: block;" id="color-prompt">Unlock custom colours at
-                level 10</p>
+<body class="dark:bg-stone-950 px-2">
+    <div class="text-center mb-4 bg-stone-200 dark:bg-stone-900 dark:text-white w-[10cm] mx-auto my-2 rounded-2xl px-2">
+        <h1 class="text-2xl">Placer</h1>
+        <p class="dark:text-stone-200 text-stone-700">This is a game where you work
+            together
+            with as many people as you want to make a masterpiece, or (more realistically) a nightmare.</p>
+    </div>
+    <div class="max-w-[20cm] mx-auto dark:bg-stone-800 bg-stone-300 p-4 rounded-lg shadow-lg">
+        <canvas id="canvas" width="500" height="500" class="w-full px-2"></canvas>
+        <p id="ratelimit" class="text-black dark:text-white text-center"></p>
+        <p id="pixels" class="text-black dark:text-white text-center"></p>
+        <p id="level" class="text-black dark:text-white text-center"></p>
+        <div class="w-full bg-gray-200 rounded-full dark:bg-gray-700">
+            <div class="bg-blue-600 text-xs font-medium text-blue-100 text-center p-0.5 leading-none rounded-full"
+                style="width: 0%" id="levelbar">0%</div>
         </div>
     </div>
-    <div class="md:hidden text-center mt-4 dark:text-white">
-        <p class="text-lg font-bold">This page is not optimized for mobile devices.</p>
-        <p class="text-sm">Please use a desktop browser for the best experience.</p>
+    <div>
+        <div
+            class="flex justify-center mt-4 bg-stone-200 p-2 rounded-lg shadow-md w-fit mx-auto max-w-screen flex-wrap">
+            <button id="color-red"
+                class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded mx-2 border-4 border-transparent"
+                onclick="setColor('#ff0000'); highlightButton('color-red')">Red</button>
+            <button id="color-green"
+                class="bg-green-500 hover:bg-green-700 text-black hover:text-white font-bold py-2 px-4 rounded mx-2 border-4 border-transparent"
+                onclick="setColor('#00ff00'); highlightButton('color-green')">Green</button>
+            <button id="color-blue"
+                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mx-2 border-4 border-transparent"
+                onclick="setColor('#0000ff'); highlightButton('color-blue')">Blue</button>
+            <button id="color-yellow"
+                class="bg-yellow-500 hover:bg-yellow-700 text-black hover:text-white font-bold py-2 px-4 rounded mx-2 border-4 border-transparent"
+                onclick="setColor('#ffff00'); highlightButton('color-yellow')">Yellow</button>
+            <button id="color-white"
+                class="bg-white hover:bg-gray-200 text-black font-bold py-2 px-4 rounded mx-2 border-4 border-transparent"
+                onclick="setColor('#ffffff'); highlightButton('color-white')">White</button>
+            <input type="color" id="color-picker" class="ml-2 border-2 border-gray-300 rounded" style="display: none;"
+                onchange="setColor(this.value); highlightButton('color-picker')">
+        </div>
+        <p class="text-center dark:text-white" style="display: block;" id="color-prompt">Unlock custom colours at
+            level 10</p>
     </div>
 </body>
 <script>
