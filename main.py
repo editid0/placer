@@ -135,40 +135,54 @@ def handle_set_coordinate(data):
     # Make sure color is a valid (allowed) hex color
     APPROVED = ["#ffffff", "#ffff00", "#0000ff", "#00ff00", "#ff0000"]
     with database.cursor() as cursor:
-        # SQL query to
+        # SQL query to insert or update the pixel in the database
         upsert_query = """
         INSERT INTO pixels (x, y, color)
         VALUES (%s, %s, %s)
         ON CONFLICT (x, y) DO UPDATE SET color = EXCLUDED.color, updated_at = NOW();
         """
         cursor.execute(upsert_query, (x, y, color))
+        # Commit the changes to the database
         database.commit()
-
+    # Send the message to all connected clients, so they can update their UI, keeping the UI in sync
     emit("coordinate_set", {"x": x, "y": y, "color": color}, broadcast=True)
 
 
 @socketio.on("ratelimit")
 def handle_ratelimit(data):
+    # This function is called when the client requests the current rate limit status
+    if not data:
+        # If no data is provided, we send an error message
+        emit("error_msg", {"message": "No data provided"})
+        return
     user_id = data.get("user_id")
     if not user_id:
+        # If no user ID is provided, we send an error message
         emit("error_msg", {"message": "User ID is required"})
         return
     remaining = strategy.get_window_stats(
         ratelimit_limit, "set_coordinate", user_id
     ).remaining
+    # Send the remaining requests to the client
     emit("ratelimit", {"remaining": remaining, "user_id": user_id})
 
 
 @socketio.on("pixel_count")
 def handle_pixel_count(data):
+    # This function is called when the client requests the pixel count
     if not data.get("user_id", None):
+        # If no user ID is provided, we send an error message
         emit("error_msg", {"message": "User ID is required"})
         return
+    # Get the pixel count for the user from the Valkey database
     pixels = kv.get(data.get("user_id"))
     if pixels is None:
+        # If the user does not have any pixels set, we set the pixel count to 0
         pixels = 0
     else:
+        # If the user has pixels set, we convert the pixel count to an integer
         pixels = int(pixels)
+    # Send the pixel count back to the client
     emit("pixel_count", {"count": pixels, "user_id": data.get("user_id")})
 
 
