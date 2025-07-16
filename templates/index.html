@@ -216,6 +216,10 @@
         connectionStatus.textContent = "Connected to server"; // Update the connection status when connected
         // This function is called when the socket connection is established
         socket.emit("request_current"); // Request the current pixels from the server
+        if (!localStorage.getItem("user_id")) {
+            // If the user ID is not set in localStorage, set it to a new UUID
+            localStorage.setItem("user_id", uuid.v4());
+        }
         socket.emit("pixel_count", { user_id: localStorage.getItem("user_id") }); // Request the pixel count for the user
         socket.emit("get_name", { user_id: localStorage.getItem("user_id") }); // Request the user's name, which triggers the name event and updates the name input field
     });
