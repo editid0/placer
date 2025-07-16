@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Placer</title>
+    <link rel="stylesheet" href="{{ url_for('public', filename='styles.css') }}">
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"
+        integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+"
+        crossorigin="anonymous"></script>
+</head>
+
+<body class="dark:bg-stone-950">
+    <div class="invisible md:visible">
+
+        <div
+            class="text-center mb-4 bg-stone-200 dark:bg-stone-900 dark:text-white w-[10cm] mx-auto my-2 rounded-2xl px-2">
+            <h1 class="text-2xl">Placer</h1>
+            <p class="dark:text-stone-200 text-stone-700">For the sake of HackMate, this is a game where you work
+                together
+                with as many people as you want to make a masterpiece, or (more realistically) a nightmare.</p>
+        </div>
+        <div class="max-w-[20cm] mx-auto dark:bg-stone-800 bg-stone-300 p-4 rounded-lg shadow-lg">
+            <canvas id="canvas" width="500" height="500" class="w-full px-2"></canvas>
+            <p id="ratelimit" class="text-black dark:text-white text-center"></p>
+        </div>
+        <div>
+            <div class="flex justify-center mt-4 bg-stone-200 p-2 rounded-lg shadow-md w-fit mx-auto">
+                <button id="color-red"
+                    class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded mx-2 border-4 border-transparent"
+                    onclick="setColor('#ff0000'); highlightButton('color-red')">Red</button>
+                <button id="color-green"
+                    class="bg-green-500 hover:bg-green-700 text-black hover:text-white font-bold py-2 px-4 rounded mx-2 border-4 border-transparent"
+                    onclick="setColor('#00ff00'); highlightButton('color-green')">Green</button>
+                <button id="color-blue"
+                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mx-2 border-4 border-transparent"
+                    onclick="setColor('#0000ff'); highlightButton('color-blue')">Blue</button>
+                <button id="color-yellow"
+                    class="bg-yellow-500 hover:bg-yellow-700 text-black hover:text-white font-bold py-2 px-4 rounded mx-2 border-4 border-transparent"
+                    onclick="setColor('#ffff00'); highlightButton('color-yellow')">Yellow</button>
+                <button id="color-white"
+                    class="bg-white hover:bg-gray-200 text-black font-bold py-2 px-4 rounded mx-2 border-4 border-transparent"
+                    onclick="setColor('#ffffff'); highlightButton('color-white')">White</button>
+            </div>
+        </div>
+    </div>
+    <div class="md:hidden text-center mt-4 dark:text-white">
+        <p class="text-lg font-bold">This page is not optimized for mobile devices.</p>
+        <p class="text-sm">Please use a desktop browser for the best experience.</p>
+    </div>
+</body>
+<script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    document.current_color = "#ff0000";
+
+    function setColor(color) {
+        document.current_color = color;
+    }
+    function highlightButton(selectedId) {
+        const ids = ['color-red', 'color-green', 'color-blue', 'color-yellow', 'color-white'];
+        ids.forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) {
+                btn.style.borderColor = (id === selectedId) ? '#222' : 'transparent';
+            }
+        });
+    }
+    highlightButton('color-red');
+
+    function drawGrid() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const boxSize = 5;
+        const cols = 100;
+        const rows = 100;
+
+        ctx.strokeStyle = "#444";
+        ctx.lineWidth = 1;
+
+        for (let x = 0; x <= cols; x++) {
+            ctx.beginPath();
+            ctx.moveTo(x * boxSize, 0);
+            ctx.lineTo(x * boxSize, rows * boxSize);
+            ctx.stroke();
+        }
+        for (let y = 0; y <= rows; y++) {
+            ctx.beginPath();
+            ctx.moveTo(0, y * boxSize);
+            ctx.lineTo(cols * boxSize, y * boxSize);
+            ctx.stroke();
+        }
+    }
+
+    function setCoordinate(x, y, color) {
+        ctx.fillStyle = color;
+        ctx.fillRect(x * 5 + 1, y * 5 + 1, 4, 4);
+    }
+    const socket = io();
+
+    canvas.addEventListener("click", function (event) {
+        const rect = canvas.getBoundingClientRect();
+        const style = window.getComputedStyle(canvas);
+        const paddingLeft = parseFloat(style.paddingLeft);
+
+        const relativeX = event.clientX - rect.left - paddingLeft;
+        const relativeY = event.clientY - rect.top;
+
+        const proportionX = relativeX / (rect.width - paddingLeft * 2);
+        const proportionY = relativeY / rect.height;
+
+        const x = Math.min(Math.floor(proportionX * 100), 99);
+        const y = Math.min(Math.floor(proportionY * 100), 99);
+
+        if (x >= 0 && x < 100 && y >= 0 && y < 100) {
+            socket.emit("set_coordinate", { x: x, y: y, color: document.current_color, user_id: localStorage.getItem("user_id") });
+            setCoordinate(x, y, document.current_color);
+        }
+        // Add a number to pixels_placed if it exists, otherwise create it
+        let pixelsPlaced = localStorage.getItem("pixels_placed");
+        if (pixelsPlaced) {
+            pixelsPlaced = parseInt(pixelsPlaced) + 1;
+        } else {
+            pixelsPlaced = 1;
+        }
+        localStorage.setItem("pixels_placed", pixelsPlaced);
+    });
+
+    drawGrid();
+
+    function updateLimit(remaining) {
+        const limitElement = document.getElementById("ratelimit");
+        if (limitElement) {
+            limitElement.textContent = `Rate limit left: ${remaining}`;
+        } else {
+            console.warn("Rate limit element not found");
+        }
+    }
+
+    socket.on("connect", () => {
+        console.log("Connected to server");
+        socket.emit("request_current");
+    });
+
+    socket.on("current_pixels", (msg) => {
+        console.log("Received current pixels:", msg.pixels);
+        msg.pixels.forEach(pixel => {
+            setCoordinate(pixel[0], pixel[1], pixel[2]);
+        });
+        if (!localStorage.getItem("user_id")) {
+            localStorage.setItem("user_id", msg.user_id);
+        }
+        socket.emit("ratelimit", { user_id: localStorage.getItem("user_id") });
+    });
+    socket.on("disconnect", () => {
+        console.log("Disconnected from server");
+    });
+    socket.on("error_msg", (error) => {
+        alert("Error: " + error.message);
+    });
+    socket.on("coordinate_set", (msg) => {
+        console.log("Coordinate set:", msg);
+        setCoordinate(msg.x, msg.y, msg.color);
+    });
+    socket.on("ratelimit", (msg) => {
+        updateLimit(msg.remaining);
+    });
+    setInterval(() => {
+        socket.emit("ratelimit", { user_id: localStorage.getItem("user_id") });
+    }, 1000);
+</script>
+
+</html>
