@@ -58,6 +58,7 @@
 </body>
 <script>
     const canvas = document.getElementById("canvas");
+    const gridMap = {}; // An internal map to keep track of coordinates and their colors
     const ctx = canvas.getContext("2d");
     document.current_color = "#ff0000";
     function setColor(color) {
@@ -101,9 +102,26 @@
     }
 
     function setCoordinate(x, y, color) {
+        let current = getCoordinate(x, y);
+        if (current == color) {
+            return false;
+        }
         ctx.fillStyle = color;
         ctx.fillRect(x * 5 + 1, y * 5 + 1, 4, 4);
+        // Store the color in the gridMap
+        gridMap[`${x},${y}`] = color;
+        return true;
     }
+    function getCoordinate(x, y) {
+        // Get the color of the pixel at (x, y)
+        const color = gridMap[`${x},${y}`];
+        if (color) {
+            return color
+        } else {
+            return "#ffffff"; // Return white if no color is set
+        }
+    }
+
     const socket = io();
 
     canvas.addEventListener("click", function (event) {
@@ -121,8 +139,11 @@
         const y = Math.min(Math.floor(proportionY * 100), 99);
 
         if (x >= 0 && x < 100 && y >= 0 && y < 100) {
+            var set = setCoordinate(x, y, document.current_color);
+            if (!set) {
+                return;
+            }
             socket.emit("set_coordinate", { x: x, y: y, color: document.current_color, user_id: localStorage.getItem("user_id") });
-            setCoordinate(x, y, document.current_color);
         }
         // Add a number to pixels_placed if it exists, otherwise create it
         let pixelsPlaced = localStorage.getItem("pixels_placed");
@@ -146,13 +167,11 @@
     }
 
     socket.on("connect", () => {
-        console.log("Connected to server");
         socket.emit("request_current");
         socket.emit("pixel_count", { user_id: localStorage.getItem("user_id") });
     });
 
     socket.on("current_pixels", (msg) => {
-        console.log("Received current pixels:", msg.pixels);
         msg.pixels.forEach(pixel => {
             setCoordinate(pixel[0], pixel[1], pixel[2]);
         });
@@ -162,13 +181,12 @@
         socket.emit("ratelimit", { user_id: localStorage.getItem("user_id") });
     });
     socket.on("disconnect", () => {
-        console.log("Disconnected from server");
+        console.warn("Disconnected from server");
     });
     socket.on("error_msg", (error) => {
         alert("Error: " + error.message);
     });
     socket.on("coordinate_set", (msg) => {
-        console.log("Coordinate set:", msg);
         setCoordinate(msg.x, msg.y, msg.color);
     });
     socket.on("ratelimit", (msg) => {
