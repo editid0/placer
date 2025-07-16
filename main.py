@@ -4,6 +4,7 @@ from flask_socketio import send, emit
 from dotenv import load_dotenv
 import os, psycopg2, uuid
 from limits import storage, strategies, parse
+import valkey
 
 load_dotenv()
 SECRET_KEY = os.getenv("SECRET_KEY")
@@ -22,6 +23,7 @@ database = psycopg2.connect(
 backend = storage.MemoryStorage()
 strategy = strategies.SlidingWindowCounterRateLimiter(backend)
 ratelimit_limit = parse("10 per second")
+kv = valkey.Valkey(host=os.getenv("DB_HOST"), port=6379, db=0)
 
 
 @app.route("/")
@@ -35,12 +37,16 @@ def public(filename):
 
 
 @socketio.on("request_current")
-def handle_message():
+def handle_message(data={}):
     print("Received request_current")
     with database.cursor() as cursor:
         cursor.execute("SELECT x, y, color FROM pixels")
         pixels = cursor.fetchall()
-    emit("current_pixels", {"pixels": pixels, "user_id": str(uuid.uuid4())})
+    if not data.get("user_id", None):
+        user_id = str(uuid.uuid4())
+    else:
+        user_id = data.get("user_id")
+    emit("current_pixels", {"pixels": pixels, "user_id": user_id})
 
 
 @socketio.on("set_coordinate")
@@ -55,6 +61,15 @@ def handle_set_coordinate(data):
     if not valid:
         return
     print("Received set_coordinate:", data)
+    pixels = kv.get(data.get("user_id"))
+    # This shows how many pixels the user has set
+    if pixels is None:
+        pixels = 0
+    else:
+        pixels = int(pixels)
+    # Increment the pixel count for the user
+    kv.set(data.get("user_id"), pixels + 1)
+    emit("pixel_count", {"count": pixels + 1, "user_id": data.get("user_id")})
     emit(
         "ratelimit",
         {
@@ -106,6 +121,19 @@ def handle_ratelimit(data):
         ratelimit_limit, "set_coordinate", user_id
     ).remaining
     emit("ratelimit", {"remaining": remaining, "user_id": user_id})
+
+
+@socketio.on("pixel_count")
+def handle_pixel_count(data):
+    if not data.get("user_id", None):
+        emit("error_msg", {"message": "User ID is required"})
+        return
+    pixels = kv.get(data.get("user_id"))
+    if pixels is None:
+        pixels = 0
+    else:
+        pixels = int(pixels)
+    emit("pixel_count", {"count": pixels, "user_id": data.get("user_id")})
 
 
 if __name__ == "__main__":

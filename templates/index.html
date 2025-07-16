@@ -24,6 +24,12 @@
         <div class="max-w-[20cm] mx-auto dark:bg-stone-800 bg-stone-300 p-4 rounded-lg shadow-lg">
             <canvas id="canvas" width="500" height="500" class="w-full px-2"></canvas>
             <p id="ratelimit" class="text-black dark:text-white text-center"></p>
+            <p id="pixels" class="text-black dark:text-white text-center"></p>
+            <p id="level" class="text-black dark:text-white text-center"></p>
+            <div class="w-full bg-gray-200 rounded-full dark:bg-gray-700">
+                <div class="bg-blue-600 text-xs font-medium text-blue-100 text-center p-0.5 leading-none rounded-full"
+                    style="width: 0%" id="levelbar">0%</div>
+            </div>
         </div>
         <div>
             <div class="flex justify-center mt-4 bg-stone-200 p-2 rounded-lg shadow-md w-fit mx-auto">
@@ -54,7 +60,6 @@
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
     document.current_color = "#ff0000";
-
     function setColor(color) {
         document.current_color = color;
     }
@@ -143,6 +148,7 @@
     socket.on("connect", () => {
         console.log("Connected to server");
         socket.emit("request_current");
+        socket.emit("pixel_count", { user_id: localStorage.getItem("user_id") });
     });
 
     socket.on("current_pixels", (msg) => {
@@ -171,6 +177,38 @@
     setInterval(() => {
         socket.emit("ratelimit", { user_id: localStorage.getItem("user_id") });
     }, 1000);
+    function pixelsToLevel(pixels) {
+        var level = Math.sqrt(pixels);
+        level = level / 5;
+        return Math.floor(level);
+    }
+    function levelToPixels(level) {
+        return Math.floor(Math.pow(level * 5, 2));
+    }
+    socket.on("pixel_count", (msg) => {
+        const pixelsElement = document.getElementById("pixels");
+        const progressElement = document.getElementById("levelbar");
+        if (pixelsElement) {
+            pixelsElement.textContent = `You have placed ${msg.count} pixels.`;
+        } else {
+            console.warn("Pixels element not found");
+        }
+        const levelElement = document.getElementById("level");
+        if (levelElement) {
+            const level = pixelsToLevel(msg.count);
+            levelElement.textContent = `You are at level ${level}.`;
+        } else {
+            console.warn("Level element not found");
+        }
+        if (progressElement) {
+            const level = pixelsToLevel(msg.count);
+            const nextLevelPixels = levelToPixels(level + 1);
+            progressElement.style.width = `${(msg.count / nextLevelPixels) * 100}%`;
+            progressElement.textContent = `${Math.floor((msg.count / nextLevelPixels) * 100)}%`;
+        } else {
+            console.warn("Progress element not found");
+        }
+    });
 </script>
 
 </html>
