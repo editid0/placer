@@ -93,10 +93,13 @@ def handle_set_coordinate(data):
         # User does not have any pixels set, so we initialise it as 0
         pixels = 0
     else:
+        # The user does have pixels set, so we use their current pixel count
         pixels = int(pixels)
     # Increment the pixel count for the user
     kv.set(data.get("user_id"), pixels + 1)
+    # Send the pixel count back to the client, this allows the client to calculate levels
     emit("pixel_count", {"count": pixels + 1, "user_id": data.get("user_id")})
+    # Send the ratelimit remaining to the client, allowing the client to display the current rate limit status
     emit(
         "ratelimit",
         {
@@ -108,25 +111,31 @@ def handle_set_coordinate(data):
     x = data.get("x")
     # Make sure x is an integer
     if not isinstance(x, int):
+        # If x is not an integer, we send an error message
         emit("error_msg", {"message": "x must be an integer"})
         return
     # Make sure x is between 0 and 99
     if x < 0 or x >= 100:
+        # If x is not in the range, we send an error message
         emit("error_msg", {"message": "x coordinate out of bounds"})
         return
     y = data.get("y")
     # Make sure y is an integer
     if not isinstance(y, int):
+        # If y is not an integer, we send an error message
         emit("error_msg", {"message": "y must be an integer"})
         return
     # Make sure y is between 0 and 499
     if y < 0 or y >= 100:
+        # If y is not in the range, we send an error message
         emit("error_msg", {"message": "y coordinate out of bounds"})
         return
+    # Get the colour from the data that the client sent, if no color is provided, we default to white
     color = data.get("color", "#ffffff")
-    # Make sure color is a valid hex color
+    # Make sure color is a valid (allowed) hex color
     APPROVED = ["#ffffff", "#ffff00", "#0000ff", "#00ff00", "#ff0000"]
     with database.cursor() as cursor:
+        # SQL query to
         upsert_query = """
         INSERT INTO pixels (x, y, color)
         VALUES (%s, %s, %s)
