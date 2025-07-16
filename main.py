@@ -6,64 +6,91 @@ import os, psycopg2, uuid
 from limits import storage, strategies, parse
 import valkey
 
-load_dotenv()
+load_dotenv()  # Load environment variables from .env file
+
+# Get environment variables
 SECRET_KEY = os.getenv("SECRET_KEY")
 DB_HOST = os.getenv("DB_HOST")
 DB_USER = os.getenv("DB_USER")
 DB_PASS = os.getenv("DB_USER")
 DB_NAME = os.getenv("DB_NAME")
+# Done getting environment variables
 
-
+# Initialise the flask app
 app = Flask(__name__)
 app.config["SECRET_KEY"] = SECRET_KEY
+
+# Initialise socketio
 socketio = SocketIO(app)
+
+# Initialise the postgres connection
 database = psycopg2.connect(
     host=DB_HOST, user=DB_USER, password=DB_PASS, dbname=DB_NAME
 )
+
+# Initialise the rate limiter
 backend = storage.MemoryStorage()
 strategy = strategies.SlidingWindowCounterRateLimiter(backend)
 ratelimit_limit = parse("10 per second")
+
+# Initialise Valkey connection
 kv = valkey.Valkey(host=os.getenv("DB_HOST"), port=6379, db=0)
 
 
 @app.route("/")
 def index():
+    # The home page for the app, all frontend functionality is handled in this file
     return render_template("index.html")
 
 
 @app.route("/public/<path:filename>")
 def public(filename):
+    # Serve static files from the public directory, mainly CSS
     return send_from_directory("public", filename)
 
 
 @socketio.on("request_current")
 def handle_message(data={}):
-    print("Received request_current")
+    # Handle the request for current pixels
     with database.cursor() as cursor:
-        cursor.execute("SELECT x, y, color FROM pixels")
+        # Fetch all pixels from the database that aren't white to save bandwidth
+        cursor.execute("SELECT x, y, color FROM pixels WHERE color != '#ffffff'")
         pixels = cursor.fetchall()
+    # If the user has an ID, then that is used, otherwise we generate a new one
+    # The client will update the user ID if it doesn't have one
     if not data.get("user_id", None):
         user_id = str(uuid.uuid4())
     else:
         user_id = data.get("user_id")
+    # Send the user ID back to the client.
     emit("current_pixels", {"pixels": pixels, "user_id": user_id})
 
 
 @socketio.on("set_coordinate")
 def handle_set_coordinate(data):
+    # This function handles when a client sets a pixel.
     if not data:
+        # If no data is provided, then we send an error message,
+        # as either the user is trying to send their own data,
+        # or something went wrong
         emit("error_msg", {"message": "No data provided"})
         return
     if not data.get("user_id", None):
+        # If no user ID is provided, then we send an error message,
+        # as this likely means that the user removed local storage,
+        # and the client will get a new user ID when it refreshes
         emit("error_msg", {"message": "User ID is required"})
         return
+    # Hit the rate limit strategy, this returns True if the user is allowed, and False otherwise.
     valid = strategy.hit(ratelimit_limit, "set_coordinate", data.get("user_id"))
     if not valid:
+        # If the user is not allowed to send a coordinate, we cancel the request
         return
-    print("Received set_coordinate:", data)
-    pixels = kv.get(data.get("user_id"))
-    # This shows how many pixels the user has set
+    pixels = kv.get(
+        data.get("user_id")
+    )  # Get the pixel count for the user from the Valkey database
     if pixels is None:
+        # User does not have any pixels set, so we initialise it as 0
         pixels = 0
     else:
         pixels = int(pixels)

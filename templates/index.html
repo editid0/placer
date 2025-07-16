@@ -203,8 +203,12 @@
         if (progressElement) {
             const level = pixelsToLevel(msg.count);
             const nextLevelPixels = levelToPixels(level + 1);
-            progressElement.style.width = `${(msg.count / nextLevelPixels) * 100}%`;
-            progressElement.textContent = `${Math.floor((msg.count / nextLevelPixels) * 100)}%`;
+            const previousLevelPixels = levelToPixels(level);
+            const difference = nextLevelPixels - previousLevelPixels;
+            const progress = msg.count - previousLevelPixels;
+            const progressPercentage = (progress / difference);
+            progressElement.style.width = `${(progressPercentage) * 100}%`;
+            progressElement.textContent = `${Math.floor((progressPercentage) * 100)}%`;
         } else {
             console.warn("Progress element not found");
         }
