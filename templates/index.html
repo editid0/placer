@@ -58,7 +58,7 @@
 </body>
 <script>
     const canvas = document.getElementById("canvas");
-    const gridMap = {}; // An internal map to keep track of coordinates and their colors
+    const gridMap = {};
     const ctx = canvas.getContext("2d");
     document.current_color = "#ff0000";
     function setColor(color) {
@@ -108,17 +108,15 @@
         }
         ctx.fillStyle = color;
         ctx.fillRect(x * 5 + 1, y * 5 + 1, 4, 4);
-        // Store the color in the gridMap
         gridMap[`${x},${y}`] = color;
         return true;
     }
     function getCoordinate(x, y) {
-        // Get the color of the pixel at (x, y)
         const color = gridMap[`${x},${y}`];
         if (color) {
             return color
         } else {
-            return "#ffffff"; // Return white if no color is set
+            return "#ffffff";
         }
     }
 
@@ -145,7 +143,6 @@
             }
             socket.emit("set_coordinate", { x: x, y: y, color: document.current_color, user_id: localStorage.getItem("user_id") });
         }
-        // Add a number to pixels_placed if it exists, otherwise create it
         let pixelsPlaced = localStorage.getItem("pixels_placed");
         if (pixelsPlaced) {
             pixelsPlaced = parseInt(pixelsPlaced) + 1;
