@@ -1,5 +1,5 @@
 flask
-valkey-py
+"valkey[libvalkey]"
 flask-socketio
 psycopg2-binary
 cachetools

@@ -217,7 +217,7 @@
         // This function is called when the socket connection is established
         socket.emit("request_current"); // Request the current pixels from the server
         socket.emit("pixel_count", { user_id: localStorage.getItem("user_id") }); // Request the pixel count for the user
-        socket.emit("get_name", { user_id: localStorage.getItem("user_id") }); // Request the user's name
+        socket.emit("get_name", { user_id: localStorage.getItem("user_id") }); // Request the user's name, which triggers the name event and updates the name input field
     });
 
     socket.on("current_pixels", (msg) => {
@@ -317,7 +317,7 @@
         if (nameInput) {
             // If the name input element exists, set its value to the user's name
             console.log("Setting name input to:", msg); // Log the name being set
-            nameInput.value = msg.name;
+            nameInput.value = msg.name; // Finally, this sets the value of the name input to the user's name from the server
         } else {
             // If the name input element does not exist, log a warning to the console
             console.warn("Name input element not found");
