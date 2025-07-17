@@ -18,11 +18,21 @@
         <p class="dark:text-stone-200 text-stone-700">This is a game where you work
             together
             with as many people as you want to make a masterpiece, or (more realistically) a nightmare.</p>
+        <hr class="my-2" />
+        <p class="">
+            You can make a room by going to /room/your_room_name, or you can join the main room by going to /room/main.
+            <hr class="bg-neutral-500 border-neutral-500 border-1" />
+            Rooms are persistent, so you can come back later and continue working on your masterpiece.
+            <hr class="bg-neutral-500 border-neutral-500 border-1" />
+            Rooms names are case insensitive, and all non alphanumeric characters are replaced.
+            <hr class="bg-neutral-500 border-neutral-500 border-1" />
+            You are in room <span class="font-bold">{{ room_name }}</span>.
+        </p>
         <input type="text" id="name-input" placeholder="Enter your display name"
             class="border-2 border-gray-300 rounded p-2 mt-2 w-full max-w-[10cm] mx-auto">
         <button id="name-submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2"
-            onclick="socket.emit('set_name', { name: document.getElementById('name-input').value, user_id: localStorage.getItem('user_id') })">
-            Set Name
+            onclick="socket.emit('set_name', { name: document.getElementById('name-input').value, user_id: localStorage.getItem('user_id'), room_name: room_name })">
+            Update Name (If changed)
         </button>
         <a href="{{ url_for('leaderboard') }}"
             class="bg-green-500 hover:bg-green-700 text-neutral-600 hover:text-white font-bold py-2 px-4 rounded mt-2 inline-block">
@@ -72,6 +82,7 @@
     const gridMap = {}; // initialise an empty object to store grid coordinates
     const ctx = canvas.getContext("2d"); // get the 2D drawing context of the canvas
     const socket = io(); // initialise the socket.io connection
+    const room_name = "{{ room_name }}"; // get the room name from the template variable
     const nameInput = document.getElementById("name-input"); // get the name input element
     const connectionStatus = document.getElementById("connection"); // get the connection status element
     document.current_color = "#ff0000"; // set the default color to red
@@ -203,25 +214,26 @@
                 return;
             }
             // Emit the set_coordinate event to the server with the coordinates and color
-            socket.emit("set_coordinate", { x: x, y: y, color: document.current_color, user_id: localStorage.getItem("user_id") });
+            socket.emit("set_coordinate", { x: x, y: y, color: document.current_color, user_id: localStorage.getItem("user_id"), room_name: room_name });
         }
     });
 
     setInterval(() => {
         // This function is called every second to update the rate limit
-        socket.emit("ratelimit", { user_id: localStorage.getItem("user_id") });
+        socket.emit("ratelimit", { user_id: localStorage.getItem("user_id"), room_name: room_name }); // Request the current rate limit status from the server
     }, 1000);
 
     socket.on("connect", () => {
         connectionStatus.textContent = "Connected to server"; // Update the connection status when connected
+        socket.emit("join_room", { room_name: room_name }); // Join the specified room
         // This function is called when the socket connection is established
-        socket.emit("request_current"); // Request the current pixels from the server
+        socket.emit("request_current", { room_name: room_name }); // Request the current pixels from the server
         if (!localStorage.getItem("user_id")) {
             // If the user ID is not set in localStorage, set it to a new UUID
             localStorage.setItem("user_id", uuid.v4());
         }
-        socket.emit("pixel_count", { user_id: localStorage.getItem("user_id") }); // Request the pixel count for the user
-        socket.emit("get_name", { user_id: localStorage.getItem("user_id") }); // Request the user's name, which triggers the name event and updates the name input field
+        socket.emit("pixel_count", { user_id: localStorage.getItem("user_id"), room_name: room_name }); // Request the pixel count for the user
+        socket.emit("get_name", { user_id: localStorage.getItem("user_id"), room_name: room_name }); // Request the user's name, which triggers the name event and updates the name input field
     });
 
     socket.on("current_pixels", (msg) => {
@@ -234,7 +246,7 @@
             // If the user ID is not set in localStorage, set it to the user_id from the server
             localStorage.setItem("user_id", msg.user_id);
         }
-        socket.emit("ratelimit", { user_id: localStorage.getItem("user_id") }); // request the current rate limit status
+        socket.emit("ratelimit", { user_id: localStorage.getItem("user_id"), room_name: room_name }); // request the current rate limit status
     });
 
     socket.on("disconnect", () => {

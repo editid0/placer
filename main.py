@@ -1,6 +1,6 @@
-from flask import Flask, render_template, send_from_directory, request
+from flask import Flask, render_template, send_from_directory, request, redirect
 from flask_socketio import SocketIO
-from flask_socketio import send, emit
+from flask_socketio import send, emit, join_room
 from dotenv import load_dotenv
 import os, psycopg2, uuid, math, re
 from limits import storage, strategies, parse
@@ -72,7 +72,18 @@ def pixels_to_level(pixels):
 @app.route("/")
 def index():
     # The home page for the app, all frontend functionality is handled in this file
-    return render_template("index.html")
+    return render_template("index.html", room_name="main")
+
+
+@app.route("/room/<room_name>")
+def room(room_name):
+    room_name = re.sub(r"[^a-zA-Z0-9]", "", room_name.lower())  # Sanitize room name
+    if not room_name:
+        # If no room name is provided, redirect to the main room
+        return redirect("/room/main")
+    if room_name in ["main"]:
+        return redirect("/")
+    return render_template("index.html", room_name=room_name)
 
 
 @app.route("/leaderboard")
@@ -96,7 +107,10 @@ def handle_message(data={}):
     # Handle the request for current pixels
     with database.cursor() as cursor:
         # Fetch all pixels from the database that aren't white to save bandwidth
-        cursor.execute("SELECT x, y, color FROM pixels WHERE color != '#ffffff'")
+        cursor.execute(
+            "SELECT x, y, color FROM pixels WHERE color != '#ffffff' AND room_name = %s",
+            (data.get("room_name", "main"),),
+        )
         pixels = cursor.fetchall()
     # If the user has an ID, then that is used, otherwise we generate a new one
     # The client will update the user ID if it doesn't have one
@@ -123,6 +137,16 @@ def handle_set_coordinate(data):
         # and the client will get a new user ID when it refreshes
         emit("error_msg", {"message": "User ID is required"})
         return
+    if not data.get("room_name", None):
+        # If no room name is provided, then we send an error message,
+        # as this likely means that the user removed local storage,
+        # and the client will get a new room name when it refreshes
+        emit("error_msg", {"message": "Room name is required"})
+        return
+    room_name = data.get("room_name", "main")
+    print(
+        f"User {data.get('user_id')} is setting coordinate ({data.get('x')}, {data.get('y')}) in room {room_name}"
+    )
     pixels = kv.get(
         data.get("user_id")
     )  # Get the pixel count for the user from the Valkey database
@@ -201,15 +225,20 @@ def handle_set_coordinate(data):
     with database.cursor() as cursor:
         # SQL query to insert or update the pixel in the database
         upsert_query = """
-        INSERT INTO pixels (x, y, color)
-        VALUES (%s, %s, %s)
-        ON CONFLICT (x, y) DO UPDATE SET color = EXCLUDED.color, updated_at = NOW();
+        INSERT INTO pixels (x, y, color, room_name)
+        VALUES (%s, %s, %s, %s)
+        ON CONFLICT (x, y, room_name) DO UPDATE SET color = EXCLUDED.color, updated_at = NOW();
         """
-        cursor.execute(upsert_query, (x, y, color))
+        cursor.execute(upsert_query, (x, y, color, room_name))
         # Commit the changes to the database
         database.commit()
     # Send the message to all connected clients, so they can update their UI, keeping the UI in sync
-    emit("coordinate_set", {"x": x, "y": y, "color": color}, broadcast=True)
+    emit(
+        "coordinate_set",
+        {"x": x, "y": y, "color": color},
+        broadcast=True,
+        room=room_name,
+    )
 
 
 @socketio.on("ratelimit")
@@ -311,6 +340,20 @@ def handle_set_name(data):
     names_kv.set(data.get("user_id"), name)
     # Send the name back to the client
     emit("name", {"name": name, "user_id": data.get("user_id")})
+
+
+@socketio.on("join_room")
+def handle_join_room(data):
+    # This function is called when the client joins a room
+    room_name = data.get("room_name", "main")
+    if not room_name:
+        # If no room name is provided, we send an error message
+        emit("error_msg", {"message": "Room name is required"})
+        return
+    # Join the room
+    join_room(room_name)
+    # Notify the client that they have joined the room
+    emit("joined_room", {"room_name": room_name}, room=room_name)
 
 
 if __name__ == "__main__":
