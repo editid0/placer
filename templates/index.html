@@ -79,30 +79,30 @@
     </div>
 </body>
 <script>
-    const canvas = document.getElementById("canvas"); // get the canvas element
-    const gridMap = {}; // initialise an empty object to store grid coordinates
-    const ctx = canvas.getContext("2d"); // get the 2D drawing context of the canvas
-    const socket = io(); // initialise the socket.io connection
-    const room_name = "{{ room_name }}"; // get the room name from the template variable
-    const nameInput = document.getElementById("name-input"); // get the name input element
-    const connectionStatus = document.getElementById("connection"); // get the connection status element
-    document.current_color = "#ff0000"; // set the default color to red
+    const canvas = document.getElementById("canvas");
+    const gridMap = {};
+    const ctx = canvas.getContext("2d");
+    const socket = io();
+    const room_name = "{{ room_name }}";
+    const nameInput = document.getElementById("name-input");
+    const connectionStatus = document.getElementById("connection");
+    document.current_color = "#ff0000";
 
     function pixelsToLevel(pixels) {
         // This function converts the number of pixels
         // a user has placed to a level, allowing for
         // progression, each level is harder to achieve
-        var level = Math.sqrt(pixels); // First, we square root the number of pixels
-        level = level / 5; // Then we divide by 5 to make the levels more spaced out
-        return Math.floor(level); // Finally, we round down to the nearest whole number
+        var level = Math.sqrt(pixels);
+        level = level / 5;
+        return Math.floor(level);
     }
 
     function levelToPixels(level) {
         // This function converts a level back to the number of pixels required to reach that level
         if (level < 0) {
-            return 0; // If the level is negative, return 0 pixels
+            return 0;
         }
-        return Math.floor(Math.pow(level * 5, 2)); // We multiply the level by 5, then square it to get the number of pixels
+        return Math.floor(Math.pow(level * 5, 2));
     }
 
     function setColor(color) {
@@ -127,47 +127,47 @@
         // Draw the initial grid on the canvas
         // Clear the canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = "#ffffff"; // Set the background color to white
-        ctx.fillRect(0, 0, canvas.width, canvas.height); // Fill the canvas with white
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        const boxSize = 5; // Set the size of each grid box
-        const cols = 100; // Set the number of columns in the grid
-        const rows = 100; // Set the number of rows in the grid
+        const boxSize = 5;
+        const cols = 100;
+        const rows = 100;
 
-        ctx.strokeStyle = "#aaa"; // Set the stroke color for the grid lines
-        ctx.lineWidth = 1; // Set the line width for the grid lines
+        ctx.strokeStyle = "#aaa";
+        ctx.lineWidth = 1;
 
         for (let x = 0; x <= cols; x++) {
             // Loop over each column
             ctx.beginPath();
-            ctx.moveTo(x * boxSize, 0); // Start at the top
-            ctx.lineTo(x * boxSize, rows * boxSize); // Draw a line to the bottom
-            ctx.stroke(); // Make the line visible
+            ctx.moveTo(x * boxSize, 0);
+            ctx.lineTo(x * boxSize, rows * boxSize);
+            ctx.stroke();
         }
         for (let y = 0; y <= rows; y++) {
             // Loop over each row
             ctx.beginPath();
-            ctx.moveTo(0, y * boxSize); // Start at the left
-            ctx.lineTo(cols * boxSize, y * boxSize); // Draw a line to the right
-            ctx.stroke(); // Make the line visible
+            ctx.moveTo(0, y * boxSize);
+            ctx.lineTo(cols * boxSize, y * boxSize);
+            ctx.stroke();
         }
     }
 
     function setCoordinate(x, y, color) {
         // This function sets a coordinate on the grid to a specific color
-        let current = getCoordinate(x, y); // Get the current color of the coordinate
+        let current = getCoordinate(x, y);
         if (current == color) {
             // If the current color is the same as the new color, do nothing
             return false;
         }
-        ctx.fillStyle = color; // Set the fill color to the new color
-        ctx.fillRect(x * 5 + 1, y * 5 + 1, 4, 4); // Draw a small rectangle at the coordinate
-        gridMap[`${x},${y}`] = color; // Store the color in the gridMap object
+        ctx.fillStyle = color;
+        ctx.fillRect(x * 5 + 1, y * 5 + 1, 4, 4);
+        gridMap[`${x},${y}`] = color;
         return true;
     }
     function getCoordinate(x, y) {
         // This function retrieves the color of a specific coordinate
-        const color = gridMap[`${x},${y}`]; // Get the color from the gridMap object
+        const color = gridMap[`${x},${y}`];
         if (color) {
             // If the color exists, return it
             return color
@@ -194,22 +194,22 @@
 
     canvas.addEventListener("click", function (event) {
         // This function handles the click event on the canvas
-        const rect = canvas.getBoundingClientRect(); // This gets the position of the canvas in the viewport, so that even if it's moved we get accurate coordinates
-        const style = window.getComputedStyle(canvas); // Get the computed style of the canvas to account for padding
-        const paddingLeft = parseFloat(style.paddingLeft); // Get the left padding of the canvas (We never use the right padding as coordinates are left aligned)
+        const rect = canvas.getBoundingClientRect();
+        const style = window.getComputedStyle(canvas);
+        const paddingLeft = parseFloat(style.paddingLeft);
 
-        const relativeX = event.clientX - rect.left - paddingLeft; // get the x value on the canvas
-        const relativeY = event.clientY - rect.top; // get the y value on the canvas
+        const relativeX = event.clientX - rect.left - paddingLeft;
+        const relativeY = event.clientY - rect.top;
 
-        const proportionX = relativeX / (rect.width - paddingLeft * 2); // work out the proportion of the x value relative to the width of the canvas
-        const proportionY = relativeY / rect.height; // work out the proportion of the y value relative to the height of the canvas
+        const proportionX = relativeX / (rect.width - paddingLeft * 2);
+        const proportionY = relativeY / rect.height;
 
-        const x = Math.min(Math.floor(proportionX * 100), 99); // work out the x coordinate in the grid, making sure it is between 0 and 99
-        const y = Math.min(Math.floor(proportionY * 100), 99); // work out the y coordinate in the grid, making sure it is between 0 and 99
+        const x = Math.min(Math.floor(proportionX * 100), 99);
+        const y = Math.min(Math.floor(proportionY * 100), 99);
 
         if (x >= 0 && x < 100 && y >= 0 && y < 100) {
             // If the coordinates are within the grid bounds, set the coordinate
-            var set = setCoordinate(x, y, document.current_color); // Set the coordinate on the grid with the current color
+            var set = setCoordinate(x, y, document.current_color);
             if (!set) {
                 // If the coordinate was not set (because it was already the same color), do nothing
                 return;
@@ -225,16 +225,16 @@
     }, 1000);
 
     socket.on("connect", () => {
-        connectionStatus.textContent = "Connected to server"; // Update the connection status when connected
-        socket.emit("join_room", { room_name: room_name }); // Join the specified room
+        connectionStatus.textContent = "Connected to server";
+        socket.emit("join_room", { room_name: room_name });
         // This function is called when the socket connection is established
-        socket.emit("request_current", { room_name: room_name }); // Request the current pixels from the server
+        socket.emit("request_current", { room_name: room_name });
         if (!localStorage.getItem("user_id")) {
             // If the user ID is not set in localStorage, set it to a new UUID
             localStorage.setItem("user_id", uuid.v4());
         }
-        socket.emit("pixel_count", { user_id: localStorage.getItem("user_id"), room_name: room_name }); // Request the pixel count for the user
-        socket.emit("get_name", { user_id: localStorage.getItem("user_id"), room_name: room_name }); // Request the user's name, which triggers the name event and updates the name input field
+        socket.emit("pixel_count", { user_id: localStorage.getItem("user_id"), room_name: room_name });
+        socket.emit("get_name", { user_id: localStorage.getItem("user_id"), room_name: room_name });
     });
 
     socket.on("current_pixels", (msg) => {
@@ -247,13 +247,13 @@
             // If the user ID is not set in localStorage, set it to the user_id from the server
             localStorage.setItem("user_id", msg.user_id);
         }
-        socket.emit("ratelimit", { user_id: localStorage.getItem("user_id"), room_name: room_name }); // request the current rate limit status
+        socket.emit("ratelimit", { user_id: localStorage.getItem("user_id"), room_name: room_name });
     });
 
     socket.on("disconnect", () => {
         // when the socket connection is disconnected, log a warning to the console
         console.warn("Disconnected from server");
-        connectionStatus.textContent = "Disconnected from server"; // Update the connection status when disconnected
+        connectionStatus.textContent = "Disconnected from server";
     });
 
     socket.on("error_msg", (error) => {
@@ -293,32 +293,32 @@
         }
         if (progressElement) {
             // if the progress element exists, calculate the progress and update its width and text content
-            const level = pixelsToLevel(msg.count); // Calculate the level based on the pixel count
-            const nextLevelPixels = levelToPixels(level + 1); // get the number of pixels needed to get to the next level
-            const previousLevelPixels = levelToPixels(level); // get the number of pixels needed to get to current level
-            const difference = nextLevelPixels - previousLevelPixels; // calculate the difference between the current and next level pixels
-            const progress = msg.count - previousLevelPixels; // calculate the progress made towards the next level
-            const progressPercentage = (progress / difference); // calculate the percentage of progress made towards the next level
-            progressElement.style.width = `${(progressPercentage) * 100}%`; // set the width of the progress bar based on the progress percentage
-            progressElement.textContent = `${Math.floor((progressPercentage) * 100)}%`; // update the text content of the progress bar to show the percentage
+            const level = pixelsToLevel(msg.count);
+            const nextLevelPixels = levelToPixels(level + 1);
+            const previousLevelPixels = levelToPixels(level);
+            const difference = nextLevelPixels - previousLevelPixels;
+            const progress = msg.count - previousLevelPixels;
+            const progressPercentage = (progress / difference);
+            progressElement.style.width = `${(progressPercentage) * 100}%`;
+            progressElement.textContent = `${Math.floor((progressPercentage) * 100)}%`;
             // If level is >= 10, show #color-picker
             const colorPicker = document.getElementById("color-picker");
             if (colorPicker) {
-                colorPicker.style.display = (level >= 10) ? "block" : "none"; // Show the color picker if the level is 10 or higher
+                colorPicker.style.display = (level >= 10) ? "block" : "none";
             } else {
                 // if the color picker element does not exist, log a warning to the console
                 console.warn("Color picker element not found");
             }
             const colorPrompt = document.getElementById("color-prompt");
             if (colorPrompt) {
-                colorPrompt.style.display = (level >= 10) ? "none" : "block"; // Hide the color prompt if the level is 10 or higher
+                colorPrompt.style.display = (level >= 10) ? "none" : "block";
             } else {
                 // if the color prompt element does not exist, log a warning to the console
                 console.warn("Color prompt element not found");
             }
             const ratePrompt = document.getElementById("rate-prompt");
             if (ratePrompt) {
-                ratePrompt.style.display = (level >= 15) ? "none" : "block"; // Hide the rate prompt if the level is 15 or higher
+                ratePrompt.style.display = (level >= 15) ? "none" : "block";
             } else {
                 // if the rate prompt element does not exist, log a warning to the console
                 console.warn("Rate prompt element not found");
@@ -333,8 +333,8 @@
         // This function is called when the server sends the user's name
         if (nameInput) {
             // If the name input element exists, set its value to the user's name
-            console.log("Setting name input to:", msg); // Log the name being set
-            nameInput.value = msg.name; // Finally, this sets the value of the name input to the user's name from the server
+            console.log("Setting name input to:", msg);
+            nameInput.value = msg.name;
         } else {
             // If the name input element does not exist, log a warning to the console
             console.warn("Name input element not found");
