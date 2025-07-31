@@ -3,6 +3,7 @@ A multiplayer game where players can draw on a canvas, inspired by r/place
 
 ## AI Usage
 I used AI for explaining why stuff doesn't work, so for debugging, I didn't use AI to generate large parts of the code, I would estimate about 2-3% AI usage in the code overall.
+AI was also used to generated the messages in the commits.
 
 # .env File
 ```env
